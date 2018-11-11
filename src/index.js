@@ -1,78 +1,101 @@
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom'
 import moment from 'moment'
+import Clock from 'react-clock'
 
-const timeFormat = 'hh:mm:ss a'
+import './index.css'
+
+const timeFormat = 'hh:mm:ss A'
 
 class App extends Component {
   componentDidMount = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(async position => {
-        console.log('geolocation')
-        const coords = position.coords
-        console.log('coords', coords)
         const resp = await fetch(
-          `https://api.sunrise-sunset.org/json?lat=${coords.latitude
+          `https://api.sunrise-sunset.org/json?lat=${position.coords.latitude
             .toString()
-            .substring(0, 9)}&lng=${coords.longitude.toString().substring(0, 9)}&date=today`,
+            .substring(0, 9)}&lng=${position.coords.longitude
+            .toString()
+            .substring(0, 9)}&date=today`,
         )
         const json = await resp.json()
-        const sunrise = moment(json.results.sunrise, timeFormat)
-        const sunset = moment(json.results.sunset, timeFormat)
-        const halfDiff = Math.abs(sunrise.diff(sunset, 'm')) / 2
-        const solarNoon = sunrise.add(halfDiff, 'm').format(timeFormat)
-        const solarMidnight = sunset.add(halfDiff, 'm').format(timeFormat)
+        // const TC = 4 * (-60 - position.coords.longitude) - 0.094
+        console.log('coords', position.coords)
+        const sunrise = moment(json.results.sunrise, timeFormat).subtract(5, 'h')
+        const sunset = moment(json.results.sunset, timeFormat).subtract(5, 'h')
+        const halfDiff = Math.abs(sunset.diff(sunrise, 'm')) / 2
+        console.log('halfDiff', halfDiff)
+        console.log('hour', halfDiff / 60)
+        console.log('minute', halfDiff % 60)
+        console.log(
+          'solarMidnight',
+          moment(sunrise)
+            .subtract(halfDiff, 'm')
+            .format(timeFormat),
+        )
         this.setState(() => ({
-          coords,
-          sunrise: sunrise.format(timeFormat),
-          sunset: sunset.format(timeFormat),
-          solarNoon,
-          solarMidnight,
+          sunrise,
+          sunset,
+          solarNoon: moment(sunrise).add(halfDiff, 'm'),
+          solarMidnight: moment(sunrise).subtract(halfDiff, 'm'),
+          // solarNoon: moment('12:00:00 PM', timeFormat).add(TC, 'm'),
+          // solarMidnight: moment('00:00:00 AM', timeFormat).add(TC, 'm'),
+          loading: false,
         }))
       })
     }
   }
 
   state = {
-    coords: null,
+    loading: true,
     sunrise: '',
     sunset: '',
     solarNoon: '',
     solarMidnight: '',
   }
 
-  onChange = ({ target }) => {
-    const { name, value } = target
-    this.setState(() => ({ [name]: value }))
-  }
-
-  getSolar = e => {
-    e.preventDefault()
-    const sunrise = moment(this.state.sunrise, timeFormat)
-    const sunset = moment(this.state.sunset, timeFormat)
-    const halfDiff = Math.abs(sunrise.diff(sunset, 'm')) / 2
-    const solarNoon = sunrise.add(halfDiff, 'm').format(timeFormat)
-    const solarMidnight = sunset.add(halfDiff, 'm').format(timeFormat)
-    this.setState(() => ({ solarNoon, solarMidnight }))
-  }
-
   render() {
-    const { sunrise, sunset, solarNoon, solarMidnight } = this.state
-    return (
-      <div>
-        {/* <form onSubmit={this.getSolar}>
-          <p>
-            <input name="sunrise" type="text" onChange={this.onChange} value={sunrise} />
-          </p>
-          <p>
-            <input name="sunset" type="text" onChange={this.onChange} value={sunset} />
-          </p>
-          <button type="submit">Get Solar</button>
-        </form> */}
-        <p>Sunrise: {sunrise}</p>
-        <p>Sunset: {sunset}</p>
-        <p>Solar Noon: {solarNoon}</p>
-        <p>Solar Midnight: {solarMidnight}</p>
+    const { loading, sunrise, sunset, solarNoon, solarMidnight } = this.state
+    return loading ? (
+      'Loading...'
+    ) : (
+      <div style={{ display: 'flex' }}>
+        <div className="column">
+          <div>
+            <h1>Sunrise</h1>
+            <h2>{sunrise.format(timeFormat)}</h2>
+          </div>
+          <div>
+            <Clock value={sunrise.toDate()} />
+          </div>
+        </div>
+        <div className="column">
+          <div>
+            <h1>Noon</h1>
+            <h2>{solarNoon.format(timeFormat)}</h2>
+          </div>
+          <div>
+            <Clock value={solarNoon.toDate()} />
+          </div>
+        </div>
+        <div className="column">
+          <div>
+            <h1>Sunset</h1>
+            <h2>{sunset.format(timeFormat)}</h2>
+          </div>
+          <div>
+            <Clock value={sunset.toDate()} />
+          </div>
+        </div>
+        <div className="column">
+          <div>
+            <h1>Midnight</h1>
+            <h2>{solarMidnight.format(timeFormat)}</h2>
+          </div>
+          <div>
+            <Clock value={solarMidnight.toDate()} />
+          </div>
+        </div>
       </div>
     )
   }
