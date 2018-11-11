@@ -8,6 +8,12 @@
     "react-dom": "^16.6.1",
     "react-scripts": "2.1.1"
   },
+  "prettier": {
+    "printWidth": 100,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
